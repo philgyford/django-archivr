@@ -47,4 +47,3 @@ class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
 
 admin.site.register(FlickrPhoto, FlickrPhotoAdmin)
 
-#gis.admin.site.register(FlickrPhoto, gis.admin.OSMGeoAdmin)
