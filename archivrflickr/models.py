@@ -329,7 +329,7 @@ class FlickrPhotoset(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('photoset_detail', (), { 'flickr_id': self.flickr_id })
+        return ('flickr_photoset_detail', (), { 'flickr_id': self.flickr_id })
 
     def highlight(self):
         """
