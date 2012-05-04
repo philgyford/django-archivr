@@ -21,7 +21,7 @@ class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
             'fields': ('order_date', 'hidden', 'featured', 'coordinate', 'item_genre',)
         }),
         ('Photo', {
-            'fields': ('flickr_id', 'owner', 'title', 'description', 'posted_date', 'updated_date', 'taken_date', 'taken_granularity', 'license', 'comments', 'visibility_is_public', 'visibility_is_friend', 'visibility_is_family', 'safety_level', 'rotation',)
+            'fields': ('flickr_id', 'owner', 'title', 'description', 'posted_date', 'updated_date', 'taken_date', 'taken_granularity', 'license', 'comments','safety_level', 'rotation', 'visibility_is_public', 'visibility_is_friend', 'visibility_is_family', )
         }),
         ('URL etc.', {
             'fields': ('photopage_url', 'farm', 'server', 'secret', 'original_secret', 'original_format',)
