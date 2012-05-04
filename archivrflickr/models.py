@@ -1,7 +1,4 @@
 from django.db import models
-from django.utils.html import strip_tags
-from django.utils.text import truncate_words
-from django.utils.translation import ugettext_lazy as _
 
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
@@ -26,11 +23,15 @@ class FlickrFavoriteList(models.Model):
     photos = models.ManyToManyField('FlickrPhoto', through='FlickrFavorite')
     primary = models.ForeignKey('FlickrPhoto', related_name='primary_in', null=True)
 
-    def numPhotos(self):
-        return len(self.photo_list.objects.all())
-
     def __unicode__(self):
         return u"%s's favorite photos" % self.owner
+
+    @models.permalink
+    def get_absolute_url(self):
+        return ('flickr_favoritelist_detail', (), {})
+
+    def numPhotos(self):
+        return len(self.photo_list.objects.all())
 
 
 class FlickrPhoto(ArchivrItem):
@@ -83,6 +84,8 @@ class FlickrPhoto(ArchivrItem):
     secret = models.CharField(max_length=10)
     original_secret = models.CharField(max_length=10, blank=True)
     original_format = models.CharField(max_length=10, blank=True)
+    safety_level = models.PositiveSmallIntegerField(null=True)
+    rotation = models.PositiveSmallIntegerField(null=True)
 
     large_height = models.PositiveSmallIntegerField(null=True)
     large_width = models.PositiveSmallIntegerField(null=True)
@@ -104,6 +107,11 @@ class FlickrPhoto(ArchivrItem):
     square_width = models.PositiveSmallIntegerField(null=True)
     thumbnail_height = models.PositiveSmallIntegerField(null=True)
     thumbnail_width = models.PositiveSmallIntegerField(null=True)
+
+    is_video = models.BooleanField(default=False)
+    video_duration = models.PositiveIntegerField(null=True)
+    video_width = models.PositiveSmallIntegerField(null=True)
+    video_height = models.PositiveSmallIntegerField(null=True)
 
     geo_latitude = models.FloatField(null=True, blank=True)
     geo_longitude = models.FloatField(null=True, blank=True)
@@ -140,7 +148,10 @@ class FlickrPhoto(ArchivrItem):
         get_latest_by = 'posted_date'
 
     def __unicode__(self):
-        return u'%s' % self.title
+        if self.title:
+            return u'%s' % self.title
+        else:
+            return u'[%s]' % self.flickr_id
 
     @models.permalink
     def get_absolute_url(self):
@@ -150,6 +161,9 @@ class FlickrPhoto(ArchivrItem):
     objects = models.Manager()
     # FlickrPhotos that haven't been marked as hidden.
     visible_objects = VisibleManager()
+    # FlickrPhotos that haven't been marked as hidden and have been marked as 
+    # featured.
+    featured_objects = FeaturedManager()
 
     def _get_photo_url_helper(self, size, secret=None, extension='jpg'):
         size = size and '_%s' % size or ''
@@ -299,13 +313,12 @@ class FlickrPhotoComment(models.Model):
         return _(u"%(author)s said: %(comment)s") % {
             'author': self.author, 'comment': self.get_short_comment(4)}
 
+    @models.permalink
     def get_absolute_url(self):
-        return self.permanent_url
-
-    def get_short_comment(self, num=6):
-        return truncate_words(strip_tags(self.comment), num)
-    get_short_comment.short_description = _(u'comment')
-
+        return ('flickr_photo_comment', (), {
+                                                'photo_id': self.photo.flickr_id,
+                                                'comment_id': self.flickr_id
+                                            })
 
 class FlickrPhotoset(models.Model):
     """
@@ -401,5 +414,10 @@ class FlickrUser(models.Model):
     photos_first_date = models.DateTimeField()
     photos_count = models.PositiveIntegerField()
     photos_views = models.PositiveIntegerField()
+    
+    def __unicode__(self):
+        return u"%s (%s)" % (self.realname, self.username)
 
-
+    @models.permalink
+    def get_absolute_url(self):
+        return ('flickr_user_detail', (), { 'path_alias': self.path_alias, })

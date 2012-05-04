@@ -18,10 +18,10 @@ class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
     exclude = ('tags',)
     fieldsets = (
         ('ArchivrItem', {
-            'fields': ('order_date', 'hidden', 'coordinate', 'item_genre',)
+            'fields': ('order_date', 'hidden', 'featured', 'coordinate', 'item_genre',)
         }),
         ('Photo', {
-            'fields': ('flickr_id', 'owner', 'title', 'description', 'posted_date', 'updated_date', 'taken_date', 'taken_granularity', 'license', 'comments', 'visibility_is_public', 'visibility_is_friend', 'visibility_is_family',)
+            'fields': ('flickr_id', 'owner', 'title', 'description', 'posted_date', 'updated_date', 'taken_date', 'taken_granularity', 'license', 'comments', 'visibility_is_public', 'visibility_is_friend', 'visibility_is_family', 'safety_level', 'rotation',)
         }),
         ('URL etc.', {
             'fields': ('photopage_url', 'farm', 'server', 'secret', 'original_secret', 'original_format',)
@@ -29,6 +29,10 @@ class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
         ('Image sizes', {
             'classes': ('collapse',),
             'fields': ('large_width', 'large_height', 'largesquare_width','largesquare_height', 'medium640_width', 'medium640_height', 'medium800_width', 'medium800_height', 'medium_width', 'medium_height', 'original_width', 'original_height', 'small320_width', 'small320_height', 'small_width', 'small_height', 'square_width', 'square_height', 'thumbnail_width', 'thumbnail_height',)
+        }),
+        ('Video', {
+            'classes': ('collapse',),
+            'fields': ('is_video', 'video_duration', 'video_width', 'video_height',)
         }),
         ('Geo data', {
             'classes': ('collapse',),
