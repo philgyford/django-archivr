@@ -1,8 +1,7 @@
-from django.db import models
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import Point
 
-from archivr.managers import VisibleManager
+from archivr.managers import FeaturedManager, VisibleManager
 
 # So we can group different models of the same type together.
 # eg, fetch Flickr and Instagram photos together.
@@ -22,8 +21,12 @@ class ArchivrItem(models.Model):
 
     order_date = models.DateTimeField(
                                 help_text="The date used for ordering the item")
+    # Irrespective of the item's settings on the origin service.
     hidden = models.BooleanField(default=False,
                                 help_text="Is this item hidden from public view?")
+    # Might be useful to pick out certain items.
+    featured = models.BooleanField(default=False,
+                                                help_text="Is this highlighted?")
     coordinate = models.PointField(null=True,
                                             help_text="Where this item is located")
     item_genre = models.CharField(max_length=20, default='',
@@ -38,6 +41,8 @@ class ArchivrItem(models.Model):
     objects = models.Manager()
     # Items that haven't been marked as hidden.
     visible_objects = VisibleManager()
+    # Items that haven't been marked as hidden and have been marked as featured.
+    featured_objects = FeaturedManager()
 
 
     def is_a(self, item_kind):
