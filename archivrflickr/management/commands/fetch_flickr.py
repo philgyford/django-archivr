@@ -23,7 +23,7 @@ class Command(LabelCommand):
             # Ignored when fetching photosets.
             make_option('--days',
                 metavar = 'DAYS',
-                default = 1,
+                default = 1, # By default we fetch most recent 1 day. Safe.
                 dest    = 'days',
                 help    = 'Number of days of recent photos or favorites to fetch, or "all". (Default is 1).',),
 
@@ -35,6 +35,11 @@ class Command(LabelCommand):
     flickr_fetcher = False
 
     def handle_label(self, label, **options):
+        """
+        Initial method called after options are processed.
+        Do general checking and setting up the FlickrFetcher before passing off
+        to a more specific method.
+        """
 
         if options.get('username') is not None:
             username = options.get('username')
@@ -63,23 +68,27 @@ class Command(LabelCommand):
         # Prepare for fetching things...
         self.flickr_fetcher = FlickrFetcher(username=username,
                                 api_key=flickr_settings['api_key'],
-                                api_secret=flickr_settings['api_secret'])
+                                api_secret=flickr_settings['api_secret'],
+                                verbosity=options.get('verbosity'))
 
         # Then, after double-checking we have a method for it, call the subcommand.
         method_name = 'handle_subcommand_'+label
         if hasattr(self, method_name):
-            getattr(self, method_name)()
+            getattr(self, method_name)(**options)
         else:
             raise CommandError('Oops, something went wrong... there\'s no method named "%s"' % method_name) 
 
 
-    def handle_subcommand_photos(self):
-        print "Yeah, let's get photos"
+    def handle_subcommand_photos(self, **options):
+        if options.get('days') == 'all':
+            self.flickr_fetcher.fetch_all_photos()
+        else:
+            self.flickr_fetcher.fetch_recent_photos(options.get('days'))
 
-    def handle_subcommand_photosets(self):
+    def handle_subcommand_photosets(self, **options):
         print "Yeah, let's get photosets"
 
-    def handle_subcommand_favorites(self):
+    def handle_subcommand_favorites(self, **options):
         print "Yeah, let's get favorites"
 
 

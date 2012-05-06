@@ -12,13 +12,14 @@ class FlickrFetcher(ArchivrFetcher):
     username = ''
     nsid = ''
 
+    # We could pass in options to only get certain things, but we don't allow that
+    # at the moment, keeping it simple. But the switches should be present in the
+    # code to respect these settings:
     fetch_content = {
         'photo_comments': True,
         'photo_sizes': True,
         'photo_exif': True,
         'photo_geo': True,
-        'photosets': True,
-        'favorites': True,
     }
 
     def __init__(self, username, api_key, api_secret, *args, **kwargs):
@@ -28,7 +29,8 @@ class FlickrFetcher(ArchivrFetcher):
 
         self.username = username
         self.nsid = self._username_to_nsid(self.username)
-        print self.nsid
+        self.log(2, "FlickrFetcher initiated for username '%s' (%s)" %
+                                                        (self.username, self.nsid))
 
     def _username_to_nsid(self, username):
         """
@@ -40,29 +42,18 @@ class FlickrFetcher(ArchivrFetcher):
             self._handle_api_error('_username_to_nsid', err)
 
     def _handle_api_error(self, method_name, message):
-        print 'API ERROR in %s(): %s' % (method_name, message)
+        self.log(0, 'API ERROR in %s(): %s' % (method_name, message))
 
-
-    def fetch_all(self):
-        self.fetch_all_photos()
-
-        if self.fetch_content.photosets:
-            self.fetch_photosets()
-
-        if self.fetch_content.favorites:
-            self.fetch_favorites
-
-    def fetch_recent(self, days=1):
-        self.fetch_recent_photos(days)
 
     def fetch_photo(self):
         pass
 
     def fetch_all_photos(self):
-        pass
+        self.log(2, "Fetching All Photos")
 
     def fetch_recent_photos(self, days):
-        fetch_since = datetime.now() - timedelta(days=days)
+        self.log(2, "Fetching Photos from past %s day(s)" % days)
+        fetch_since = datetime.now() - timedelta(days=int(days))
         timestamp = calendar.timegm(fetch_since.timetuple())
 
         result = self.flickr.photos_search(user_id=self.nsid, per_page=500,
