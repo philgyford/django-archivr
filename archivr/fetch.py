@@ -1,8 +1,7 @@
 import logging
 
 class ArchivrFetcher(object):
-    """
-    The base class for all *Fetcher classes.
+    """The base class for all *Fetcher classes.
     """
 
     # Verbosity level; 0=minimal output, 1=normal output,
@@ -16,8 +15,7 @@ class ArchivrFetcher(object):
 
 
     def log(self, level, message):
-        """
-        Logging method.
+        """Logging method.
         Call with a numerical level, from 0-3, like self.verbosity.
         `0` messages will always be output.
         """
@@ -25,15 +23,5 @@ class ArchivrFetcher(object):
             print message
 
 
-    def setTags(self, item, tag_data):
-        """
-        Adds/deletes tags on an item (FlickrPhoto, etc).
-
-        Required arguments
-            item: The FlickrPhoto (or whatever) object. Should already have been
-                        created and saved.
-            tag_data: New data about the tags.
-        """
-        pass
 
 

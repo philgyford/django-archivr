@@ -58,22 +58,38 @@ class FlickrPhoto(ArchivrItem):
         (8, 'Circa...'),
     )
 
+    # Used in the FlickrFetcher class.
+    # The values (on right) must match the 'label's from the Flickr API's
+    # flickr.photos.getSizes method.
+    # Easier to keep in sync with the model attributes here.
+    PHOTO_SIZES = (
+        ('large', 'Large'),
+        ('largesquare', 'Large Square'),
+        ('medium640', 'Medium 640'),
+        ('medium800', 'Medium 800'),
+        ('medium', 'Medium'),
+        ('original', 'Original'),
+        ('small320', 'Small 320'),
+        ('small', 'Small'),
+        ('square', 'Square'),
+        ('thumbnail', 'Thumbnail'),
+    )
+
     # Data from Flickr:
     flickr_id = models.CharField(max_length=50, unique=True,
                                             help_text="ID of this photo on Flickr.")
     owner = models.ForeignKey('FlickrUser')
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    description = models.TextField(null=True, blank=True)
 
     posted_date = models.DateTimeField(help_text="UTC")
     updated_date = models.DateTimeField(help_text="UTC")
     taken_date = models.DateTimeField(
-                                help_text="In Flickr user's timezone (unknown).")
+                                help_text="Stored as UTC, but timezone is unknown.")
     taken_granularity = models.PositiveSmallIntegerField(default=0,
                                                 choices=FLICKR_DATE_GRANULARITIES)
 
     comments = models.PositiveIntegerField(default=0)
-    license = models.CharField(max_length=50, choices=FLICKR_LICENSES)
     visibility_is_public = models.BooleanField(default=False)
     visibility_is_friend = models.BooleanField(default=False)
     visibility_is_family = models.BooleanField(default=False)
@@ -86,48 +102,66 @@ class FlickrPhoto(ArchivrItem):
     original_format = models.CharField(max_length=10, blank=True)
     safety_level = models.PositiveSmallIntegerField(null=True)
     rotation = models.PositiveSmallIntegerField(null=True)
+    license = models.CharField(max_length=50, choices=FLICKR_LICENSES)
 
-    large_height = models.PositiveSmallIntegerField(null=True)
+    # If you add another size, add it in FLICKR_PHOTO_SIZES too.
+    # And add methods to check the presence of the size for this Photo,
+    # and to return the size's URL.
     large_width = models.PositiveSmallIntegerField(null=True)
-    largesquare_height = models.PositiveSmallIntegerField(null=True)
+    large_height = models.PositiveSmallIntegerField(null=True)
     largesquare_width = models.PositiveSmallIntegerField(null=True)
-    medium640_height = models.PositiveSmallIntegerField(null=True)
+    largesquare_height = models.PositiveSmallIntegerField(null=True)
     medium640_width = models.PositiveSmallIntegerField(null=True)
-    medium800_height = models.PositiveSmallIntegerField(null=True)
+    medium640_height = models.PositiveSmallIntegerField(null=True)
     medium800_width = models.PositiveSmallIntegerField(null=True)
-    medium_height = models.PositiveSmallIntegerField(null=True)
+    medium800_height = models.PositiveSmallIntegerField(null=True)
     medium_width = models.PositiveSmallIntegerField(null=True)
-    original_height = models.PositiveSmallIntegerField(null=True)
+    medium_height = models.PositiveSmallIntegerField(null=True)
     original_width = models.PositiveSmallIntegerField(null=True)
-    small320_height = models.PositiveSmallIntegerField(null=True)
+    original_height = models.PositiveSmallIntegerField(null=True)
     small320_width = models.PositiveSmallIntegerField(null=True)
-    small_height = models.PositiveSmallIntegerField(null=True)
+    small320_height = models.PositiveSmallIntegerField(null=True)
     small_width = models.PositiveSmallIntegerField(null=True)
-    square_height = models.PositiveSmallIntegerField(null=True)
+    small_height = models.PositiveSmallIntegerField(null=True)
     square_width = models.PositiveSmallIntegerField(null=True)
-    thumbnail_height = models.PositiveSmallIntegerField(null=True)
+    square_height = models.PositiveSmallIntegerField(null=True)
     thumbnail_width = models.PositiveSmallIntegerField(null=True)
+    thumbnail_height = models.PositiveSmallIntegerField(null=True)
 
     is_video = models.BooleanField(default=False)
     video_duration = models.PositiveIntegerField(null=True)
     video_width = models.PositiveSmallIntegerField(null=True)
     video_height = models.PositiveSmallIntegerField(null=True)
 
-    geo_latitude = models.FloatField(null=True, blank=True)
-    geo_longitude = models.FloatField(null=True, blank=True)
+    geo_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, 
+                                                                        blank=True)
+    geo_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, 
+                                                                        blank=True)
     geo_accuracy = models.PositiveSmallIntegerField(null=True, blank=True)
+    geo_place_id = models.CharField(max_length=50, null=True, blank=True)
+    geo_woe_id = models.PositiveIntegerField(null=True, blank=True)
     geo_county = models.CharField(max_length=255, blank=True)
-    geo_county_place_id = models.CharField(max_length=50, blank=True)
-    geo_county_woe_id = models.PositiveIntegerField(max_length=50, blank=True)
+    geo_county_place_id = models.CharField(max_length=50, null=True, blank=True)
+    geo_county_woe_id = models.PositiveIntegerField(null=True, blank=True)
     geo_country = models.CharField(max_length=255, blank=True)
-    geo_country_place_id = models.CharField(max_length=50, blank=True)
-    geo_country_woe_id = models.PositiveIntegerField(max_length=50, blank=True)
+    geo_country_place_id = models.CharField(max_length=50, null=True, blank=True)
+    geo_country_woe_id = models.PositiveIntegerField(null=True, blank=True)
     geo_locality = models.CharField(max_length=255, blank=True)
-    geo_locality_place_id = models.CharField(max_length=50, blank=True)
-    geo_locality_woe_id = models.PositiveIntegerField(max_length=50, blank=True)
+    geo_locality_place_id = models.CharField(max_length=50, null=True, blank=True)
+    geo_locality_woe_id = models.PositiveIntegerField(null=True, blank=True)
+    geo_neighbourhood = models.CharField(max_length=255, blank=True)
+    geo_neighbourhood_place_id = models.CharField(max_length=50, null=True,
+                                                                        blank=True)
+    geo_neighbourhood_woe_id = models.PositiveIntegerField(null=True, blank=True)
     geo_region = models.CharField(max_length=255, blank=True)
-    geo_region_place_id = models.CharField(max_length=50, blank=True)
-    geo_region_woe_id = models.PositiveIntegerField(max_length=50, blank=True)
+    geo_region_place_id = models.CharField(max_length=50, null=True, blank=True)
+    geo_region_woe_id = models.PositiveIntegerField(max_length=50, null=True, 
+                                                                        blank=True)
+    # Not always available.
+    geo_perms_is_public = models.NullBooleanField(null=True)
+    geo_perms_is_contact = models.NullBooleanField(null=True)
+    geo_perms_is_friend = models.NullBooleanField(null=True)
+    geo_perms_is_family = models.NullBooleanField(null=True)
 
     exif_aperture = models.CharField(max_length=255, blank=True)
     exif_color_space = models.CharField(max_length=255, blank=True)
@@ -382,7 +416,7 @@ class FlickrPhotoTag(TaggedItemBase):
     than the Tag itself.
     """
     flickr_id = models.CharField(max_length=255, verbose_name='Flickr ID')
-    author_nsid = models.CharField(max_length=50, verbose_name='Author NSID')
+    author = models.ForeignKey('FlickrUser')
     machine_tag = models.BooleanField(default=False)
     content_object = models.ForeignKey(FlickrPhoto,
                                     related_name="%(app_label)s_%(class)s_items")
@@ -397,23 +431,25 @@ class FlickrUser(models.Model):
     """
     nsid = models.CharField(max_length=50, help_text='eg, "35034346050@N01"')
     username = models.CharField(max_length=255, help_text="eg, 'philgyford'")
-    realname = models.CharField(max_length=255,
-                            help_text="eg, 'Phil Gyford'. Doesn't always exist.")
+    realname = models.CharField(max_length=255, blank=True,
+                            help_text="eg, 'Phil Gyford'. Could be ''.")
     path_alias = models.CharField(max_length=50)
-    location = models.CharField(max_length=255)
-    description = models.TextField()
+    location = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
 
     photos_url = models.URLField(verify_exists = False)
     profile_url = models.URLField(verify_exists = False)
     mobile_url = models.URLField(verify_exists = False)
 
-    iconserver = models.PositiveSmallIntegerField()
-    iconfarm = models.PositiveSmallIntegerField()
+    icon_server = models.PositiveSmallIntegerField(default=0)
+    icon_farm = models.PositiveSmallIntegerField(default=0)
+    is_pro = models.BooleanField(default=False)
 
     photos_first_date_taken = models.DateTimeField()
     photos_first_date = models.DateTimeField()
     photos_count = models.PositiveIntegerField()
-    photos_views = models.PositiveIntegerField()
+    photos_views = models.PositiveIntegerField(null=True, blank=True,
+                                        help_text="Not available for all users.")
     
     def __unicode__(self):
         return u"%s (%s)" % (self.realname, self.username)
@@ -421,3 +457,17 @@ class FlickrUser(models.Model):
     @models.permalink
     def get_absolute_url(self):
         return ('flickr_user_detail', (), { 'path_alias': self.path_alias, })
+    
+    def get_buddy_icon_url(self):
+        """See http://www.flickr.com/services/api/misc.buddyicons.html """
+        if self.iconserver:
+            # Is present, or is not 0...
+            return 'http://farm%s.staticflickr.com/%s/buddyicons/%s.jpg' % (
+                    self.iconfarm,
+                    self.iconserver,
+                    self.nsid,
+            )
+        else:
+            return 'http://www.flickr.com/images/buddyicon.gif'
+
+

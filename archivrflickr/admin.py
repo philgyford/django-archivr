@@ -1,16 +1,14 @@
 from django.contrib import admin
-from django.contrib import gis 
-from archivrflickr.models import FlickrPhoto
+from archivrflickr.models import *
 
 
 class FlickrPhotoTagInline(admin.TabularInline):
     model = FlickrPhoto.tags.through
     raw_id_fields = ('tag',)
 
-
-class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
+class FlickrPhotoAdmin(admin.ModelAdmin):
     date_hierarchy = 'posted_date'
-    list_display = ('posted_date', 'show_thumb', 'title', 'owner', 'hidden',)
+    list_display = ('posted_date', 'show_thumb', 'title', 'owner', 'featured', 'hidden',)
     list_display_links = ('title', 'show_thumb',)
     list_filter = ('posted_date',)
     search_fields = ['title', 'description',]
@@ -18,7 +16,7 @@ class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
     exclude = ('tags',)
     fieldsets = (
         ('ArchivrItem', {
-            'fields': ('order_date', 'hidden', 'featured', 'coordinate', 'item_genre',)
+            'fields': ('order_date', 'item_genre', 'hidden', 'featured', 'latitude', 'longitude',)
         }),
         ('Photo', {
             'fields': ('flickr_id', 'owner', 'title', 'description', 'posted_date', 'updated_date', 'taken_date', 'taken_granularity', 'license', 'comments','safety_level', 'rotation', 'visibility_is_public', 'visibility_is_friend', 'visibility_is_family', )
@@ -51,3 +49,16 @@ class FlickrPhotoAdmin(gis.admin.OSMGeoAdmin):
 
 admin.site.register(FlickrPhoto, FlickrPhotoAdmin)
 
+
+class FlickrUserAdmin(admin.ModelAdmin):
+    date_hierarchy = 'photos_first_date'
+    list_display = ('username', 'realname', 'nsid',)
+    list_display_links = ('username',)
+    search_fields = ('username', 'realname', 'nsid', 'location', 'description',)
+    fieldsets = (
+        (None, {
+            'fields': ('nsid', 'username', 'realname', 'path_alias', 'location', 'description', 'photos_url', 'profile_url', 'mobile_url', 'icon_server', 'icon_farm', 'is_pro', 'photos_first_date_taken', 'photos_first_date', 'photos_count', 'photos_views',)
+        }),
+    )
+
+admin.site.register(FlickrUser, FlickrUserAdmin)
