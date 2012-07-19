@@ -59,18 +59,20 @@ class FlickrPhoto(ArchivrItem):
     )
 
     # Used in the FlickrFetcher class.
-    # The values (on right) must match the 'label's from the Flickr API's
+    # The values (on right) must match the "label"s from the Flickr API's
     # flickr.photos.getSizes method.
     # Easier to keep in sync with the model attributes here.
     PHOTO_SIZES = (
         ('large', 'Large'),
+        ('large1600', 'Large 1600'),
+        ('large2048', 'Large 2048'),
         ('largesquare', 'Large Square'),
+        ('medium', 'Medium'),
         ('medium640', 'Medium 640'),
         ('medium800', 'Medium 800'),
-        ('medium', 'Medium'),
         ('original', 'Original'),
-        ('small320', 'Small 320'),
         ('small', 'Small'),
+        ('small320', 'Small 320'),
         ('square', 'Square'),
         ('thumbnail', 'Thumbnail'),
     )
