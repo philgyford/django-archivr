@@ -22,7 +22,7 @@ class FlickrPhotoAdmin(admin.ModelAdmin):
         ('Photo', {
             'fields': ('flickr_id', 'owner', 'title', 'description', 'posted_date',
                         'updated_date', 'taken_date', 'taken_granularity',
-                        'license', 'comments', 'safety_level', 'rotation',
+                        'license', 'safety_level', 'rotation',
                         'visibility_is_public', 'visibility_is_friend',
                         'visibility_is_family', )
         }),
@@ -84,6 +84,30 @@ class FlickrPhotoAdmin(admin.ModelAdmin):
 
 admin.site.register(FlickrPhoto, FlickrPhotoAdmin)
 
+class FlickrPhotosetAdmin(admin.ModelAdmin):
+    list_display = ('show_thumb', 'title', 'photo_count', 'created_date',) 
+    list_display_links = ('show_thumb', 'title',)
+    search_fields = ('title', 'description',)
+    fieldsets = (
+        (None, {
+            'fields': ('flickr_id', 'primary', 'owner', 'title', 'description',
+                        'created_date', 'updated_date', 'photos')
+            }
+        ),
+    )
+    def show_thumb(self, instance):
+        return '<img src="%s" width="%s" height="%s" alt="Thumbnail" />' % (
+            instance.primary.get_url('thumbnail'),
+            instance.primary.thumbnail_width,
+            instance.primary.thumbnail_height)
+    show_thumb.allow_tags = True
+    show_thumb.short_description = ''
+
+    def photo_count(self, instance):
+        return instance.photos.count()
+    photo_count.verbose_name = 'Photos'
+
+admin.site.register(FlickrPhotoset, FlickrPhotosetAdmin)
 
 class FlickrUserAdmin(admin.ModelAdmin):
     date_hierarchy = 'photos_first_date'

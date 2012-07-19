@@ -140,7 +140,6 @@ class FlickrPhoto(ArchivrItem):
     taken_granularity = models.PositiveSmallIntegerField(default=0,
                                                 choices=FLICKR_DATE_GRANULARITIES)
 
-    comments = models.PositiveIntegerField(default=0)
     visibility_is_public = models.BooleanField(default=False)
     visibility_is_friend = models.BooleanField(default=False)
     visibility_is_family = models.BooleanField(default=False)
@@ -395,7 +394,7 @@ class FlickrPhotoComment(models.Model):
     comment = models.TextField()
 
     class Meta:
-        ordering = ('pub_date',)
+        ordering = ('-pub_date',)
 
     def __unicode__(self):
         return _(u"%(author)s said: %(comment)s") % {
@@ -419,11 +418,12 @@ class FlickrPhotoset(models.Model):
     owner = models.ForeignKey('FlickrUser')
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    order = models.PositiveSmallIntegerField(default=0)
+    created_date = models.DateTimeField(help_text="UTC")
+    updated_date = models.DateTimeField(help_text="UTC")
     photos = models.ManyToManyField(FlickrPhoto)
 
     class Meta:
-        ordering = ('order',)
+        ordering = ('-created_date',)
 
     def __unicode__(self):
         return u"%s photoset by %s" % (self.title, self.owner)

@@ -1,6 +1,7 @@
 import calendar
 from datetime import datetime, timedelta
 from decimal import Decimal
+import math
 import pytz
 import re
 
@@ -403,7 +404,6 @@ class FlickrFetcher(ArchivrFetcher):
             'taken_date': taken_date,
             'taken_granularity': taken_granularity,
 
-            'comments': int(photo_data.find('comments').text),
             'visibility_is_public': bool(
                                 photo_data.find('visibility').attrib['ispublic']),
             'visibility_is_friend': bool(
@@ -511,10 +511,12 @@ class FlickrFetcher(ArchivrFetcher):
         """Fetch a single Flickr photo and put it in the database."""
         self.log(2, "Fetching Photo ID %s" % photo_id)
         photo_result = self.flickr.photos_getInfo(photo_id = photo_id)
-        self._fetch_photo(photo_result)
+        return self._fetch_photo(photo_result)
+
 
     def fetch_all_photos(self):
         self.log(2, "Fetching All Photos")
+
 
     def fetch_recent_photos(self, days):
         """
@@ -540,13 +542,67 @@ class FlickrFetcher(ArchivrFetcher):
 
         self.log(1, "Fetched %s Photo(s)." % photo_count)
 
-    def fetch_all_photosets(self):
-        """There is no concept of "recent" Photosets, so "all" is the only option.
+
+    def fetch_photoset(self, photoset_id):
         """
-        pass
+        Fetches the specified Photoset, and all the Photos in it.
+        """
+        self.log(2, "Fetching Photoset ID %s" % photoset_id)
+        result = self.flickr.photosets_getInfo(photoset_id = photoset_id)
+
+        photoset_xml = result.find('photoset')
+        primary = self.fetch_photo(photoset_xml.attrib['primary'])
+        owner = self._fetch_user(photoset_xml.attrib['owner'])
+
+        photoset, created = FlickrPhotoset.objects.get_or_create(
+            flickr_id = photoset_id,
+            defaults = {
+                'flickr_id': photoset_xml.attrib['id'],
+                'primary': primary,
+                'owner': owner,
+                'title': photoset_xml.find('title').text,
+                'description': photoset_xml.find('description').text,
+                'created_date': pytz.UTC.localize(datetime.utcfromtimestamp(
+                                        int(photoset_xml.attrib['date_create']))),
+                'updated_date': pytz.UTC.localize(datetime.utcfromtimestamp(
+                                        int(photoset_xml.attrib['date_update']))),
+            }
+        )
+
+        if not created:
+            # Update the Photoset.
+            photoset.primary = primary
+            photoset.owner = owner
+            photoset.title = photoset_xml.find('title').text
+            photoset.description = photoset_xml.find('description').text
+            photoset.updated_date = pytz.UTC.localize(datetime.utcfromtimestamp(
+                                        int(photoset_xml.attrib['date_update'])))
+
+        num_photos = float(photoset_xml.attrib['photos'])
+        page_count = int(math.ceil(num_photos / 500))
+
+        for page in range(1, page_count+1):
+            result = self.flickr.photosets_getPhotos(
+                                    photoset_id=photoset_id, per_page=500, page=page)
+            photo_list = self._fetch_photo_xml_list(
+                                        result.find('photoset').findall('photo'))
+            for photo in photo_list:
+                if photo is not None:
+                    photoset.photos.add(photo)
+
+        photoset.save()
+
+
+    def fetch_all_photosets(self):
+        """
+        There is no concept of "recent" Photosets, so "all" is the only option.
+        """
+        self.log(2, "Fetching all Photosets")
+
 
     def fetch_all_favorites(self):
         pass
+
 
     def fetch_recent_favorites(self, days):
         pass

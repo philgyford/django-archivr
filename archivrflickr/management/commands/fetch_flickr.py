@@ -11,6 +11,7 @@ class Command(LabelCommand):
     valid_labels = (
         'photo',
         'photos',
+        'photoset',
         'photosets',
         'favorites',
     )
@@ -26,12 +27,17 @@ class Command(LabelCommand):
                 metavar = 'DAYS',
                 default = 1, # By default we fetch most recent 1 day. Safe.
                 dest = 'days',
-                help = 'Number of days of recent photos or favorites to fetch, or "all". (Default is 1).',),
+                help = 'Number of days of recent Photos or Favorites to fetch, or "all". (Default is 1).',),
 
             make_option('--photo_id',
                 metavar = 'PHOTO_ID',
                 dest = 'photo_id',
-                help = 'The Flickr ID of a photo to fetch.',),
+                help = 'The Flickr ID of a Photo to fetch.',),
+
+            make_option('--photoset_id',
+                metavar = 'PHOTOSET_ID',
+                dest = 'photoset_id',
+                help = 'The Flickr ID of a Photoset to fetch.',),
 
             # We could add options to fetch/not fetch Comments, Sizes, EXIF and Geo
             # data on Photos, but we're going to Keep It Simpleish for now.
@@ -86,7 +92,7 @@ class Command(LabelCommand):
 
     def handle_subcommand_photo(self, **options):
         if options.get('photo_id') is None:
-            raise CommandError('A photo_id is required to get a photo.')
+            raise CommandError('A photo_id is required to fetch a Photo.')
         self.flickr_fetcher.fetch_photo(options.get('photo_id'))
 
     def handle_subcommand_photos(self, **options):
@@ -95,8 +101,13 @@ class Command(LabelCommand):
         else:
             self.flickr_fetcher.fetch_recent_photos(options.get('days'))
 
+    def handle_subcommand_photoset(self, **options):
+        if options.get('photoset_id') is None:
+            raise CommandError('A photoset_id is required to fetch a Photoset.')
+        self.flickr_fetcher.fetch_photoset(options.get('photoset_id'))
+
     def handle_subcommand_photosets(self, **options):
-        print "Yeah, let's get photosets"
+        self.flickr_fetcher.fetch_all_photosets()
 
     def handle_subcommand_favorites(self, **options):
         print "Yeah, let's get favorites"
