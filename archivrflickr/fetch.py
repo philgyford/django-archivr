@@ -69,14 +69,14 @@ class FlickrFetcher(ArchivrFetcher):
         # Set defaults to None.
         for label in [row[1] for row in FlickrPhoto.PHOTO_SIZES]:
             # label will be like 'Small', 'Medium 640', 'Original', etc.
-            sizes_data[label] = {'width': None, 'height': None,}
+            sizes_data[label] = {'width': None, 'height': None, }
 
         if self.fetch_content['photo_sizes']:
             self.log(3, "Photo %s: Getting sizes" % photo_id)
             result = self.flickr.photos_getSizes(photo_id=photo_id)
             for el in result.find('sizes').findall('size'):
-                sizes_data[ el.attrib['label'] ]['width'] = el.attrib['width']
-                sizes_data[ el.attrib['label'] ]['height'] = el.attrib['height']
+                sizes_data[el.attrib['label']]['width'] = el.attrib['width']
+                sizes_data[el.attrib['label']]['height'] = el.attrib['height']
 
         return sizes_data
 
@@ -269,7 +269,7 @@ class FlickrFetcher(ArchivrFetcher):
             if tag['flickr_id'] not in local_flickr_ids:
                 # This tag isn't currently on the photo, so add it.
                 tag_obj, tag_created = Tag.objects.get_or_create(
-                    slug=tag['slug'], defaults={'name':tag['name']}
+                    slug = tag['slug'], defaults = {'name': tag['name']}
                 )
                 pt_obj = FlickrPhoto.tags.through(
                         flickr_id = tag['flickr_id'],
