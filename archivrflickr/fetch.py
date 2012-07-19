@@ -15,7 +15,7 @@ from archivrflickr.models import *
 from taggit.models import Tag
 
 # This is useful for debugging responses from Flickr.
-# Do ET.tostring(result)
+# Do print ET.tostring(result)
 #import xml.etree.ElementTree as ET
 
 class FlickrFetcher(ArchivrFetcher):
@@ -543,9 +543,11 @@ class FlickrFetcher(ArchivrFetcher):
         self.log(1, "Fetched %s Photo(s)." % photo_count)
 
 
-    def fetch_photoset(self, photoset_id):
+    def fetch_photoset(self, photoset_id, order=0):
         """
         Fetches the specified Photoset, and all the Photos in it.
+        The ``order`` is for when this is called by fetch_all_photosets(), 
+        which is the only way we can give the Photosets their correct order.
         """
         self.log(2, "Fetching Photoset ID %s" % photoset_id)
         result = self.flickr.photosets_getInfo(photoset_id = photoset_id)
@@ -566,6 +568,7 @@ class FlickrFetcher(ArchivrFetcher):
                                         int(photoset_xml.attrib['date_create']))),
                 'updated_date': pytz.UTC.localize(datetime.utcfromtimestamp(
                                         int(photoset_xml.attrib['date_update']))),
+                'order': order,
             }
         )
 
@@ -577,6 +580,7 @@ class FlickrFetcher(ArchivrFetcher):
             photoset.description = photoset_xml.find('description').text
             photoset.updated_date = pytz.UTC.localize(datetime.utcfromtimestamp(
                                         int(photoset_xml.attrib['date_update'])))
+            photoset.order = order
 
         num_photos = float(photoset_xml.attrib['photos'])
         page_count = int(math.ceil(num_photos / 500))
@@ -598,6 +602,16 @@ class FlickrFetcher(ArchivrFetcher):
         There is no concept of "recent" Photosets, so "all" is the only option.
         """
         self.log(2, "Fetching all Photosets")
+
+        result = self.flickr.photosets_getList(user_id=self.nsid)
+
+        # for i, photoset in enumerate()
+        # import xml.etree.ElementTree as ET
+        # print ET.tostring(result)
+        for i, photoset in enumerate(result.find('photosets').findall('photoset')):
+            self.fetch_photoset(photoset.attrib['id'], i + 1)
+
+
 
 
     def fetch_all_favorites(self):

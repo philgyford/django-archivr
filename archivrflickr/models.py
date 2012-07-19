@@ -420,10 +420,14 @@ class FlickrPhotoset(models.Model):
     description = models.TextField(blank=True)
     created_date = models.DateTimeField(help_text="UTC")
     updated_date = models.DateTimeField(help_text="UTC")
+    # The order is only generated properly when we fetch all of the Photosets in 
+    # one go, and give them an order according to the order in which they're
+    # returned.
+    order = models.PositiveSmallIntegerField(default=0)
     photos = models.ManyToManyField(FlickrPhoto)
 
     class Meta:
-        ordering = ('-created_date',)
+        ordering = ('order',)
 
     def __unicode__(self):
         return u"%s photoset by %s" % (self.title, self.owner)
