@@ -12,10 +12,11 @@ class Migration(SchemaMigration):
         db.create_table('archivr_archivritem', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('order_date', self.gf('django.db.models.fields.DateTimeField')()),
+            ('item_genre', self.gf('django.db.models.fields.CharField')(default='', max_length=20)),
+            ('latitude', self.gf('django.db.models.fields.DecimalField')(null=True, max_digits=9, decimal_places=6, blank=True)),
+            ('longitude', self.gf('django.db.models.fields.DecimalField')(null=True, max_digits=9, decimal_places=6, blank=True)),
             ('hidden', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('featured', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('coordinate', self.gf('django.contrib.gis.db.models.fields.PointField')(null=True)),
-            ('item_genre', self.gf('django.db.models.fields.CharField')(default='', max_length=20)),
         ))
         db.send_create_signal('archivr', ['ArchivrItem'])
 
@@ -26,11 +27,12 @@ class Migration(SchemaMigration):
     models = {
         'archivr.archivritem': {
             'Meta': {'ordering': "('-order_date',)", 'object_name': 'ArchivrItem'},
-            'coordinate': ('django.contrib.gis.db.models.fields.PointField', [], {'null': 'True'}),
             'featured': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'hidden': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'item_genre': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '20'}),
+            'latitude': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '9', 'decimal_places': '6', 'blank': 'True'}),
+            'longitude': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '9', 'decimal_places': '6', 'blank': 'True'}),
             'order_date': ('django.db.models.fields.DateTimeField', [], {})
         }
     }
