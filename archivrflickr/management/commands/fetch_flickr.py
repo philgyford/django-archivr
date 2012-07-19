@@ -17,15 +17,15 @@ class Command(LabelCommand):
     option_list = LabelCommand.option_list + (
             make_option('--username',
                 metavar = 'USERNAME',
-                dest    = 'username',
-                help    = 'The Flickr username, as set in settings.py.',),
+                dest = 'username',
+                help = 'The Flickr username, as set in settings.py.',),
 
             # Ignored when fetching photosets.
             make_option('--days',
                 metavar = 'DAYS',
                 default = 1, # By default we fetch most recent 1 day. Safe.
-                dest    = 'days',
-                help    = 'Number of days of recent photos or favorites to fetch, or "all". (Default is 1).',),
+                dest = 'days',
+                help = 'Number of days of recent photos or favorites to fetch, or "all". (Default is 1).',),
 
             # We could add options to fetch/not fetch Comments, Sizes, EXIF and Geo
             # data on Photos, but we're going to Keep It Simpleish for now.
@@ -58,7 +58,7 @@ class Command(LabelCommand):
 
         # Do we have a valid subcommand after 'fetch_flickr '?
         try:
-            idx = self.valid_labels.index(label)
+            self.valid_labels.index(label)
         except ValueError:
             raise CommandError('"%s" is not a valid subcommand. Try one of these: %s' % (
                 label,
@@ -94,7 +94,7 @@ class Command(LabelCommand):
 
     @property
     def help(self):
-        lines = ['Archivr Flickr command line interface.', '',]
+        lines = ['Archivr Flickr command line interface.', '', ]
         lines.append('Call "fetch_flickr" with one of these subcommands:')
         lines.append('  %s' % ', '.join(self.valid_labels))
         lines.append('')
