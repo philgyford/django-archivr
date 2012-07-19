@@ -9,6 +9,7 @@ class Command(LabelCommand):
 
     # fetch_flickr must be called with one of the valid_labels.
     valid_labels = (
+        'photo',
         'photos',
         'photosets',
         'favorites',
@@ -26,6 +27,11 @@ class Command(LabelCommand):
                 default = 1, # By default we fetch most recent 1 day. Safe.
                 dest = 'days',
                 help = 'Number of days of recent photos or favorites to fetch, or "all". (Default is 1).',),
+
+            make_option('--photo_id',
+                metavar = 'PHOTO_ID',
+                dest = 'photo_id',
+                help = 'The Flickr ID of a photo to fetch.',),
 
             # We could add options to fetch/not fetch Comments, Sizes, EXIF and Geo
             # data on Photos, but we're going to Keep It Simpleish for now.
@@ -78,6 +84,10 @@ class Command(LabelCommand):
         else:
             raise CommandError('Oops, something went wrong... there\'s no method named "%s"' % method_name) 
 
+    def handle_subcommand_photo(self, **options):
+        if options.get('photo_id') is None:
+            raise CommandError('A photo_id is required to get a photo.')
+        self.flickr_fetcher.fetch_photo(options.get('photo_id'))
 
     def handle_subcommand_photos(self, **options):
         if options.get('days') == 'all':

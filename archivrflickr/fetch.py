@@ -13,6 +13,10 @@ from archivr.models import *
 from archivrflickr.models import *
 from taggit.models import Tag
 
+# This is useful for debugging responses from Flickr.
+# Do ET.tostring(result)
+#import xml.etree.ElementTree as ET
+
 class FlickrFetcher(ArchivrFetcher):
 
     # We could pass in options to only get certain things, but we don't allow that
@@ -113,7 +117,7 @@ class FlickrFetcher(ArchivrFetcher):
             return exif_data
 
         try:
-            for exif_elem in result.photo[0].exif:
+            for exif_elem in result.find('photo').findall('exif'):
                 for label in exif_data.keys():
                     data = testResultKey(exif_elem, label)
                     if data and not exif_data[label]:
@@ -484,8 +488,9 @@ class FlickrFetcher(ArchivrFetcher):
             defaults_dict['video_height'] = int(
                                         photo_data.find('video').attrib['height'])
 
-        from django.db import connection
-        print connection.queries
+        # For debugging:
+        # from django.db import connection
+        # print connection.queries
         photo_obj, created = FlickrPhoto.objects.get_or_create(
                                                 flickr_id = photo_data.attrib['id'], 
                                                 defaults=defaults_dict)
@@ -530,13 +535,20 @@ class FlickrFetcher(ArchivrFetcher):
         return photo_list
 
 
-    def fetch_photo(self):
-        pass
+    def fetch_photo(self, photo_id):
+        """Fetch a single Flickr photo and put it in the database."""
+        self.log(2, "Fetching Photo ID %s" % photo_id)
+        photo_result = self.flickr.photos_getInfo(photo_id = photo_id)
+        self._fetch_photo(photo_result)
 
     def fetch_all_photos(self):
         self.log(2, "Fetching All Photos")
 
     def fetch_recent_photos(self, days):
+        """
+        Fetch all a user's Flickr photos for the most recent 'days' days and put
+        them in the database.
+        """
         self.log(2, "Fetching Photos from past %s day(s)" % days)
         fetch_since = datetime.now() - timedelta(days=int(days))
         timestamp = calendar.timegm(fetch_since.timetuple())
