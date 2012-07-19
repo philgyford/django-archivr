@@ -39,6 +39,7 @@ class FlickrPhoto(ArchivrItem):
     A single photo on Flickr.
     """
 
+    # Used in the form to map the stored value with a text string.
     FLICKR_LICENSES = (
         ('0', 'All Rights Reserved'),
         ('1', 'Attribution-NonCommercial-ShareAlike License'),
@@ -50,6 +51,7 @@ class FlickrPhoto(ArchivrItem):
         ('7', 'No known copyright restrictions'),
     )
 
+    # Used in the form to map the stored value with a text string.
     # Granularity: http://www.flickr.com/services/api/misc.dates.html
     FLICKR_DATE_GRANULARITIES = (
         (0, 'Y-m-d H:i:s'),
@@ -59,22 +61,69 @@ class FlickrPhoto(ArchivrItem):
     )
 
     # Used in the FlickrFetcher class.
-    # The values (on right) must match the "label"s from the Flickr API's
-    # flickr.photos.getSizes method.
-    # Easier to keep in sync with the model attributes here.
-    PHOTO_SIZES = (
-        ('large', 'Large'),
-        ('large1600', 'Large 1600'),
-        ('large2048', 'Large 2048'),
-        ('largesquare', 'Large Square'),
-        ('medium', 'Medium'),
-        ('medium640', 'Medium 640'),
-        ('medium800', 'Medium 800'),
-        ('original', 'Original'),
-        ('small', 'Small'),
-        ('small320', 'Small 320'),
-        ('square', 'Square'),
-        ('thumbnail', 'Thumbnail'),
+    # The first value in each row should have corresponding model fields.
+    # e.g. 'small' means we should have 'small_width' and 'small_height' model fields.
+    # And each row requires a has_x_photo() method/property.
+    # The second value must match the "label"s from the Flickr API.
+    # The third value corresponds to the letter used to generate the URL for an
+    # image of that size. 
+    FLICKR_PHOTO_SIZES = (
+        ('large', 'Large', 'b'),
+        ('large1600', 'Large 1600', 'h'),
+        ('large2048', 'Large 2048', 'k'),
+        ('largesquare', 'Large Square', 'q'),
+        ('medium', 'Medium', ''),
+        ('medium640', 'Medium 640', 'z'),
+        ('medium800', 'Medium 800', 'c'),
+        ('original', 'Original', 'o'),
+        ('small', 'Small', 'm'),
+        ('small320', 'Small 320', 'n'),
+        ('square', 'Square', 's'),
+        ('thumbnail', 'Thumbnail', 't'),
+    )
+
+    # Used in the FlickrFetcher class.
+    # Each of the keys (left) should have corresponding model fields.
+    # e.g. for 'county' we have model fields:
+    # 'geo_county', 'geo_county_place_id', 'geo_county_woe_id'.
+    FLICKR_GEO_AREAS = (
+        ('county', 'County'),
+        ('country', 'Country'),
+        ('locality', 'Locality'),
+        ('neighbourhood', 'Neighbourhood'),
+        ('region', 'Region'),
+    )
+
+    # Used in the FlickrFetcher class.
+    # Each key (left), prepended by 'exif_' should have a corresponding model field.
+    # Each value (right) is the same as the name of an EXIF property, as returned by
+    # the Flickr API.
+    FLICKR_EXIF_FIELDS = (
+        ('aperture', 'Aperture'),
+        ('camera', 'Camera'),
+        ('color_space', 'Color Space'),
+        ('date_and_time_digitized', 'Date and Time (Digitized)'),
+        ('date_and_time_modified', 'Date and Time (Modified)'),
+        ('date_and_time_original', 'Date and Time (Original)'),
+        ('exposure', 'Exposure'),
+        ('exposure_bias', 'Exposure Bias'),
+        ('exposure_program', 'Exposure Program'),
+        ('flash', 'Flash'),
+        ('focal_length', 'Focal Length'),
+        ('gps_version_id', 'GPS Version ID'),
+        ('gps_latitude', 'GPS Latitude'),
+        ('gps_longitude', 'GPS Longitude'),
+        ('host_computer', 'Host Computer'),
+        ('iso_speed', 'ISO Speed'),
+        ('make', 'Make'),
+        ('max_aperture_value', 'Max Aperture Value'),
+        ('metering_mode', 'Metering Mode'),
+        ('model', 'Model'),
+        ('orientation', 'Orientation'),
+        ('software', 'Software'),
+        ('x_resolution', 'X-Resolution'),
+        ('y_resolution', 'Y-Resolution'),
+        ('ycbcr_positioning', 'YCbCr Positioning'),
     )
 
     # Data from Flickr:
@@ -111,6 +160,10 @@ class FlickrPhoto(ArchivrItem):
     # and to return the size's URL.
     large_width = models.PositiveSmallIntegerField(null=True)
     large_height = models.PositiveSmallIntegerField(null=True)
+    large1600_width = models.PositiveSmallIntegerField(null=True)
+    large1600_height = models.PositiveSmallIntegerField(null=True)
+    large2048_width = models.PositiveSmallIntegerField(null=True)
+    large2048_height = models.PositiveSmallIntegerField(null=True)
     largesquare_width = models.PositiveSmallIntegerField(null=True)
     largesquare_height = models.PositiveSmallIntegerField(null=True)
     medium640_width = models.PositiveSmallIntegerField(null=True)
@@ -142,6 +195,8 @@ class FlickrPhoto(ArchivrItem):
     geo_accuracy = models.PositiveSmallIntegerField(null=True, blank=True)
     geo_place_id = models.CharField(max_length=50, null=True, blank=True)
     geo_woe_id = models.PositiveIntegerField(null=True, blank=True)
+
+    # Each type of geo field should have an entry in GEO_AREAS, above.
     geo_county = models.CharField(max_length=255, blank=True)
     geo_county_place_id = models.CharField(max_length=50, null=True, blank=True)
     geo_county_woe_id = models.PositiveIntegerField(null=True, blank=True)
@@ -165,18 +220,33 @@ class FlickrPhoto(ArchivrItem):
     geo_perms_is_friend = models.NullBooleanField(null=True)
     geo_perms_is_family = models.NullBooleanField(null=True)
 
+    # Each of the EXIF fields should have a corresponding entry in EXIF_FIELDS, above.
     exif_aperture = models.CharField(max_length=255, blank=True)
+    exif_camera = models.CharField(max_length=255, blank=True)
     exif_color_space = models.CharField(max_length=255, blank=True)
+    exif_date_and_time_digitized = models.CharField(max_length=255, blank=True)
+    exif_date_and_time_modified = models.CharField(max_length=255, blank=True)
+    exif_date_and_time_original = models.CharField(max_length=255, blank=True)
     exif_exposure = models.CharField(max_length=255, blank=True)
+    exif_exposure_bias = models.CharField(max_length=255, blank=True)
+    exif_exposure_program = models.CharField(max_length=255, blank=True)
     exif_flash = models.CharField(max_length=255, blank=True)
     exif_focal_length = models.CharField(max_length=255, blank=True)
-    exif_iso = models.CharField(max_length=255, blank=True)
-    exif_make  = models.CharField(max_length=255, blank=True)
+    exif_gps_version_id = models.CharField(max_length=255, blank=True)
+    exif_gps_latitude = models.CharField(max_length=255, blank=True)
+    exif_gps_longitude = models.CharField(max_length=255, blank=True)
+    exif_host_computer = models.CharField(max_length=255, blank=True)
+    exif_iso_speed = models.CharField(max_length=255, blank=True)
+    exif_make = models.CharField(max_length=255, blank=True)
+    exif_max_aperture_value = models.CharField(max_length=255, blank=True)
     exif_metering_mode = models.CharField(max_length=255, blank=True)
     exif_model = models.CharField(max_length=255, blank=True)
     exif_orientation = models.CharField(max_length=255, blank=True)
     exif_software = models.CharField(max_length=255, blank=True)
-    
+    exif_x_resolution = models.CharField(max_length=255, blank=True)
+    exif_y_resolution = models.CharField(max_length=255, blank=True)
+    exif_ycbcr_positioning = models.CharField(max_length=255, blank=True)
+
     tags = TaggableManager(blank=True, through='FlickrPhotoTag')
 
     class Meta:
@@ -191,7 +261,7 @@ class FlickrPhoto(ArchivrItem):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('flickr_photo_detail', (), { 'flickr_id': self.flickr_id, })
+        return ('flickr_photo_detail', (), {'flickr_id': self.flickr_id, })
 
     # ALL FlickrPhotos.
     objects = models.Manager()
@@ -201,99 +271,82 @@ class FlickrPhoto(ArchivrItem):
     # featured.
     featured_objects = FeaturedManager()
 
-    def _get_photo_url_helper(self, size, secret=None, extension='jpg'):
-        size = size and '_%s' % size or ''
+    def _get_url_helper(self, size, secret=None, extension='jpg'):
         if secret is None:
             secret = self.secret
-        return u'http://farm%s.static.flickr.com/%s/%s_%s%s.%s' % (
-            self.farm, self.server, self.flickr_id, secret, size, extension)
+        for (key, desc, letter) in self.FLICKR_PHOTO_SIZES:
+            if key == size:
+                return u'http://farm%s.static.flickr.com/%s/%s_%s_%s.%s' % (
+                self.farm, self.server, self.flickr_id, secret, letter, extension)
 
-    def get_square_url(self):
-        return self._get_photo_url_helper('s')
+    def get_url(self, size):
+        """
+        Call this to get the URL for any photo size. eg:
+            get_url('thumbnail')
+        might return:
+            http://farm9.staticflickr.com/8166/7510891034_ecfe8e3af5_t.jpg
+        """
+        if self != 'original' and self._has_photo_size_helper(size):
+            return self._get_url_helper(size)
+        elif self.original_secret:
+            return self._get_url_helper('original',
+                    secret=self.original_secret, extension=self.original_format)
+        else:
+            return self._get_url_helper('original', extension=self.original_format)
 
-    def get_thumbnail_url(self):
-        return self._get_photo_url_helper('t')
-
-    def get_small_url(self):
-        return self._get_photo_url_helper('m')
-
-    def get_small320_url(self):
-        if self.has_small320_photo:
-            return self._get_photo_url_helper('n')
-        return self.get_original_url()
-
-    def get_medium_url(self):
-        if self.has_medium_photo:
-            return self._get_photo_url_helper('')
-        return self.get_original_url()
-
-    def get_medium640_url(self):
-        if self.has_medium640_photo:
-            return self._get_photo_url_helper('z')
-        return self.get_original_url()
-
-    def get_medium800_url(self):
-        if self.has_medium800_photo:
-            return self._get_photo_url_helper('c')
-        return self.get_original_url()
-
-    def get_large_url(self):
-        if self.has_large_photo:
-            return self._get_photo_url_helper('b')
-        return self.get_original_url()
-
-    def get_largesquare_url(self):
-        if self.has_largesquare_photo:
-            return self._get_photo_url_helper('q')
-        return self.get_original_url()
-
-    def get_original_url(self):
-        if self.original_secret:
-            return self._get_photo_url_helper('o', secret=self.original_secret,
-                                                    extension=self.original_format)
-        return self._get_photo_url_helper('o', extension=self.original_format)
-
-    @property
-    def has_small320_photo(self):
-        if self.small320_width is not None:
-            return True
-        return False
-
-    @property
-    def has_medium_photo(self):
-        if self.medium_width is not None:
-            return True
-        return False
-
-    @property
-    def has_medium640_photo(self):
-        if self.medium640_width is not None:
-            return True
-        return False
-
-    @property
-    def has_medium800_photo(self):
-        if self.medium800_width is not None:
+    def _has_photo_size_helper(self, size):
+        """Helper for all the has_x_photo() properties."""
+        if vars(self)[size+'_width'] is not None:
             return True
         return False
 
     @property
     def has_large_photo(self):
-        if self.large_width is not None:
-            return True
-        return False
+        return self._has_photo_size_helper('large')
+
+    @property
+    def has_large1600_photo(self):
+        return self._has_photo_size_helper('large1600')
+
+    @property
+    def has_large2048_photo(self):
+        return self._has_photo_size_helper('large2048')
 
     @property
     def has_largesquare_photo(self):
-        if self.largesquare_width is not None:
-            return True
-        return False
+        return self._has_photo_size_helper('largesquare')
+
+    @property
+    def has_medium_photo(self):
+        return self._has_photo_size_helper('medium')
+
+    @property
+    def has_medium640_photo(self):
+        return self._has_photo_size_helper('medium640')
+
+    @property
+    def has_medium800_photo(self):
+        return self._has_photo_size_helper('medium800')
 
     @property
     def has_original_photo(self):
-        if self.original_width is not None:
-            return True
-        return False
+        return self._has_photo_size_helper('original')
+
+    @property
+    def has_small_photo(self):
+        return self._has_photo_size_helper('small')
+
+    @property
+    def has_small320_photo(self):
+        return self._has_photo_size_helper('small320')
+
+    @property
+    def has_square_photo(self):
+        return self._has_photo_size_helper('square')
+
+    @property
+    def has_thumbnail_photo(self):
+        return self._has_photo_size_helper('thumbnail')
 
     def _next_previous_helper(self, direction, photoset):
         order = direction == 'next' and 'taken_date' or '-taken_date'
@@ -326,7 +379,6 @@ class FlickrPhoto(ArchivrItem):
         ``get_previous_by_pub_date``, because
         ``get_previous_by_pub_date`` does not differentiate entry
         status..
-
         """
         return self._next_previous_helper('previous', *args, **kwargs)
     
@@ -378,7 +430,7 @@ class FlickrPhotoset(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('flickr_photoset_detail', (), { 'flickr_id': self.flickr_id })
+        return ('flickr_photoset_detail', (), {'flickr_id': self.flickr_id, })
 
     def highlight(self):
         """
@@ -458,7 +510,7 @@ class FlickrUser(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('flickr_user_detail', (), { 'path_alias': self.path_alias, })
+        return ('flickr_user_detail', (), {'path_alias': self.path_alias, })
     
     def get_buddy_icon_url(self):
         """See http://www.flickr.com/services/api/misc.buddyicons.html """

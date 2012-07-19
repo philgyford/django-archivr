@@ -71,7 +71,7 @@ class FlickrFetcher(ArchivrFetcher):
         """
         sizes_data = dict()
         # Set defaults to None.
-        for label in [row[1] for row in FlickrPhoto.PHOTO_SIZES]:
+        for label in [row[1] for row in FlickrPhoto.FLICKR_PHOTO_SIZES]:
             # label will be like 'Small', 'Medium 640', 'Original', etc.
             sizes_data[label] = {'width': None, 'height': None, }
 
@@ -81,6 +81,11 @@ class FlickrFetcher(ArchivrFetcher):
             for el in result.find('sizes').findall('size'):
                 sizes_data[el.attrib['label']]['width'] = el.attrib['width']
                 sizes_data[el.attrib['label']]['height'] = el.attrib['height']
+
+        if sizes_data['Original']['width'] is None:
+            sizes_data['Original']['width'] = 0
+        if sizes_data['Original']['height'] is None:
+            sizes_data['Original']['height'] = 0
 
         return sizes_data
 
@@ -105,10 +110,11 @@ class FlickrFetcher(ArchivrFetcher):
             else:
                 return None
 
-        exif_data = {'Make': '', 'Model': '', 'Orientation': '',
-                     'Exposure': '', 'Software': '', 'Aperture': '',
-                     'ISO Speed': '', 'Metering Mode': '', 'Flash': '',
-                     'Focal Length': '', 'Color Space': ''}
+        # So we end up with {'Make':'', 'ISO Speed':'',} etc.
+        exif_data = {}
+        for (key, desc) in FlickrPhoto.FLICKR_EXIF_FIELDS:
+            exif_data[desc] = ''
+
         try:
             assert self.fetch_content['photo_exif']
             self.log(3, "Photo %s: Getting EXIF data" % photo_id)
@@ -137,15 +143,15 @@ class FlickrFetcher(ArchivrFetcher):
         geo_data = {
             'latitude': None, 'longitude': None, 'accuracy': None,
             'place_id': None, 'woe_id': None,
-            'county': '', 'county_place_id': None, 'county_woe_id': None,
-            'country': '', 'country_place_id': None, 'country_woe_id': None,
-            'locality': '', 'locality_place_id': None, 'locality_woe_id': None,
-            'neighbourhood': '', 'neighbourhood_place_id': None, 
-                                                    'neighbourhood_woe_id': None,
-            'region': '', 'region_place_id': None, 'region_woe_id': None,
             'perms_is_public': None, 'perms_is_contact': None,
             'perms_is_friend': None, 'perms_is_family': None,
         }
+
+        # So we add keys like 'county', 'county_place_id' and 'county_woe_id'.
+        for (key, desc) in FlickrPhoto.FLICKR_GEO_AREAS:
+            geo_data[key] = ''
+            geo_data[key+'_place_id'] = ''
+            geo_data[key+'_woe_id'] = ''
 
         location_data = photo_xml.find('photo').find('location')
 
@@ -415,66 +421,32 @@ class FlickrFetcher(ArchivrFetcher):
             'rotation': int(photo_data.attrib['rotation']),
             'license': int(photo_data.attrib['license']),
 
-            'large_width': sizes_data['Large']['width'],
-            'large_height': sizes_data['Large']['height'],
-            'largesquare_width': sizes_data['Large Square']['width'],
-            'largesquare_height': sizes_data['Large Square']['height'],
-            'medium640_width': sizes_data['Medium 640']['width'],
-            'medium640_height': sizes_data['Medium 640']['height'],
-            'medium800_width': sizes_data['Medium 800']['width'],
-            'medium800_height': sizes_data['Medium 800']['height'],
-            'medium_width': sizes_data['Medium']['width'],
-            'medium_height': sizes_data['Medium']['height'],
-            'original_width': sizes_data['Original']['width'] or 0,
-            'original_height': sizes_data['Original']['height'] or 0,
-            'small_width': sizes_data['Small']['width'],
-            'small_height': sizes_data['Small']['height'],
-            'small320_width': sizes_data['Small 320']['width'],
-            'small320_height': sizes_data['Small 320']['height'],
-            'square_width': sizes_data['Square']['width'],
-            'square_height': sizes_data['Square']['height'],
-            'thumbnail_width': sizes_data['Thumbnail']['width'],
-            'thumbnail_height': sizes_data['Thumbnail']['height'],
-
-            'latitude': geo_data['latitude'], # On ArchivrItem model.
-            'longitude': geo_data['longitude'], # On ArchivrItem model.
+            # More geo fields added below...
             'geo_latitude': geo_data['latitude'],
             'geo_longitude': geo_data['longitude'],
             'geo_accuracy': geo_data['accuracy'],
             'geo_place_id': geo_data['place_id'],
             'geo_woe_id': geo_data['woe_id'],
-            'geo_county': geo_data['county'],
-            'geo_county_place_id': geo_data['county_place_id'],
-            'geo_county_woe_id': geo_data['county_woe_id'],
-            'geo_country': geo_data['country'],
-            'geo_country_place_id': geo_data['country_place_id'],
-            'geo_country_woe_id': geo_data['country_woe_id'],
-            'geo_locality': geo_data['locality'],
-            'geo_locality_place_id': geo_data['locality_place_id'],
-            'geo_locality_woe_id': geo_data['locality_woe_id'],
-            'geo_neighbourhood': geo_data['neighbourhood'],
-            'geo_neighbourhood_place_id': geo_data['neighbourhood_place_id'],
-            'geo_neighbourhood_woe_id': geo_data['neighbourhood_woe_id'],
-            'geo_region': geo_data['region'],
-            'geo_region_place_id': geo_data['region_place_id'],
-            'geo_region_woe_id': geo_data['region_woe_id'],
             'geo_perms_is_public': geo_data['perms_is_public'],
             'geo_perms_is_contact': geo_data['perms_is_contact'],
             'geo_perms_is_friend': geo_data['perms_is_friend'],
             'geo_perms_is_family': geo_data['perms_is_family'],
 
-            'exif_aperture': exif_data['Aperture'],
-            'exif_color_space': exif_data['Color Space'],
-            'exif_exposure': exif_data['Exposure'],
-            'exif_flash': exif_data['Flash'],
-            'exif_focal_length': exif_data['Focal Length'],
-            'exif_iso': exif_data['ISO Speed'],
-            'exif_make': exif_data['Make'],
-            'exif_metering_mode': exif_data['Metering Mode'],
-            'exif_model': exif_data['Model'],
-            'exif_orientation': exif_data['Orientation'],
-            'exif_software': exif_data['Software'],
+            # Both these on ArchivrItem model.
+            'latitude': geo_data['latitude'],
+            'longitude': geo_data['longitude'],
         }
+
+        for (key, desc, l) in FlickrPhoto.FLICKR_PHOTO_SIZES:
+            defaults_dict[key+'_width'] = sizes_data[desc]['width']
+            defaults_dict[key+'_height'] = sizes_data[desc]['height']
+
+        for (key, desc) in FlickrPhoto.FLICKR_GEO_AREAS:
+            defaults_dict['geo_'+key] = geo_data[key]
+
+        for (key, desc) in FlickrPhoto.FLICKR_EXIF_FIELDS:
+            defaults_dict['exif_'+key] = exif_data[desc]
+
 
         if photo_data.find('video') is None:
             defaults_dict['item_genre'] = 'image'
