@@ -4,6 +4,7 @@ from decimal import Decimal
 import math
 import pytz
 import re
+import time
 
 from django.utils.dateparse import parse_datetime
 
@@ -63,12 +64,12 @@ class FlickrFetcher(ArchivrFetcher):
     def _handle_api_error(self, method_name, message):
         self.log(0, 'API ERROR in %s(): %s' % (method_name, message))
 
-    def _fetch_photo_sizes(self, photo_id):
+    def _fetch_photo_sizes(self, photo_flickr_id):
         """Return a dictionary of image sizes for a Flickr Photo.
         Fetches from Flickr, or returns 'None' for every size.
 
         Required arguments
-          photo_id: A Flickr Photo ID as a string
+          photo_flickr_id: A Flickr Photo ID as a string
         """
         sizes_data = dict()
         # Set defaults to None.
@@ -77,8 +78,8 @@ class FlickrFetcher(ArchivrFetcher):
             sizes_data[label] = {'width': None, 'height': None, }
 
         if self.fetch_content['photo_sizes']:
-            self.log(3, "Photo %s: Getting sizes" % photo_id)
-            result = self.flickr.photos_getSizes(photo_id=photo_id)
+            self.log(3, "Photo %s: Getting sizes" % photo_flickr_id)
+            result = self.flickr.photos_getSizes(photo_id=photo_flickr_id)
             for el in result.find('sizes').findall('size'):
                 sizes_data[el.attrib['label']]['width'] = el.attrib['width']
                 sizes_data[el.attrib['label']]['height'] = el.attrib['height']
@@ -90,11 +91,11 @@ class FlickrFetcher(ArchivrFetcher):
 
         return sizes_data
 
-    def _fetch_photo_exif(self, photo_id):
-        """Fetch the EXIF information for a photo_id
+    def _fetch_photo_exif(self, photo_flickr_id):
+        """Fetch the EXIF information for a photo_flickr_id
 
         Required arguments
-          photo_id: A Flickr Photo id as a string
+          photo_flickr_id: A Flickr Photo id as a string
         """
         def getRawOrClean(xmlnode):
             try:
@@ -118,8 +119,8 @@ class FlickrFetcher(ArchivrFetcher):
 
         try:
             assert self.fetch_content['photo_exif']
-            self.log(3, "Photo %s: Getting EXIF data" % photo_id)
-            result = self.flickr.photos_getExif(photo_id=photo_id)
+            self.log(3, "Photo %s: Getting EXIF data" % photo_flickr_id)
+            result = self.flickr.photos_getExif(photo_id=photo_flickr_id)
         except (flickrapi.FlickrError, AssertionError):
             return exif_data
 
@@ -350,18 +351,37 @@ class FlickrFetcher(ArchivrFetcher):
                                            r'\g<year>01\g<remainder>', datetime)
 
     def _fetch_photo(self, photo_xml):
-        """Synchronize a Flickr Photo with the Django backend.
+        """
+        Synchronize a Flickr Photo with the Django backend.
 
         Required Arguments
           photo_xml: A Flickr Photo in Flickrapi's ElementTree format
         """
 
         photo_data = photo_xml.find('photo')
-        photo_id = photo_data.attrib['id']
-        self.log(3, "Photo %s: Getting extra data from Flickr" % photo_id)
+        photo_flickr_id = photo_data.attrib['id']
 
-        sizes_data = self._fetch_photo_sizes(photo_id)
-        exif_data = self._fetch_photo_exif(photo_id)
+        # This is a UTC timestamp:
+        updated_date = pytz.UTC.localize(datetime.utcfromtimestamp(
+                                int(photo_data.find('dates').attrib['lastupdate'])))
+
+        try:
+            photo_obj = FlickrPhoto.objects.get(flickr_id=photo_flickr_id)
+        except DoesNotExist:
+            photo_obj = None
+
+        # If we already have this Photo, and its Flickr update date isn't more
+        # recent than the update date we have for it, then we don't need to do
+        # anything with it, so just return. 
+        if photo_obj is not None:
+            if photo_obj.updated_date >= updated_date:
+                self.log(3, "Photo %s: Already got, no need to update" % photo_flickr_id)
+                return photo_obj
+
+        self.log(3, "Photo %s: Getting extra data from Flickr" % photo_flickr_id)
+
+        sizes_data = self._fetch_photo_sizes(photo_flickr_id)
+        exif_data = self._fetch_photo_exif(photo_flickr_id)
         geo_data = self._prepare_photo_geo(photo_xml)
 
         taken_granularity = int(photo_data.find('dates').attrib['takengranularity'])
@@ -378,11 +398,9 @@ class FlickrFetcher(ArchivrFetcher):
         # datetimes, so we store it as UTC.
         taken_date = pytz.UTC.localize(parse_datetime(taken))
 
-        # These are both from UTC timestamps:
+        # This is a UTC timestamp:
         upload_date = pytz.UTC.localize(datetime.utcfromtimestamp(
                                     int(photo_data.find('dates').attrib['posted'])))
-        updated_date = pytz.UTC.localize(datetime.utcfromtimestamp(
-                                int(photo_data.find('dates').attrib['lastupdate'])))
 
         try:
             original_secret = photo_data.attrib['originalsecret']
@@ -394,7 +412,7 @@ class FlickrFetcher(ArchivrFetcher):
         defaults_dict = {
             'order_date': upload_date,
 
-            'flickr_id': photo_data.attrib['id'],
+            'flickr_id': photo_flickr_id,
             'owner': owner,
             'title': photo_data.find('title').text,
             'description': photo_data.find('description').text,
@@ -464,8 +482,8 @@ class FlickrFetcher(ArchivrFetcher):
         # from django.db import connection
         # print connection.queries
         photo_obj, created = FlickrPhoto.objects.get_or_create(
-                                                flickr_id = photo_data.attrib['id'], 
-                                                defaults=defaults_dict)
+                                                        flickr_id = photo_flickr_id,
+                                                            defaults = defaults_dict)
 
         if created:
             self.log(2, "Created new Flickr Photo %s (Flickr ID: %s)" % 
@@ -492,25 +510,28 @@ class FlickrFetcher(ArchivrFetcher):
 
         return photo_obj
 
-    def _fetch_photo_xml_list(self, photos_xml):
+    def _fetch_photo_xml_list(self, photos_xml_list):
         """Fetch a list of Flickr Photos and put into the Django database.
 
         Required arguents
-          photos_xml: A list of photos in Flickrapi's ElementTree format.
+          photos_xml: A list of photos, each in Flickrapi's ElementTree format.
         """
         photo_list = []
-        for photo in photos_xml:
+
+        for photo in photos_xml_list:
             self.log(3, "Photo %s: Getting basic data from Flickr" %
                                                                 photo.attrib['id'])
             photo_result = self.flickr.photos_getInfo(photo_id=photo.attrib['id'])
             photo_list.append(self._fetch_photo(photo_result))
+            # Be polite.
+            time.sleep(1)
         return photo_list
 
 
-    def fetch_photo(self, photo_id):
+    def fetch_photo(self, photo_flickr_id):
         """Fetch a single Flickr photo and put it in the database."""
-        self.log(2, "Fetching Photo ID %s" % photo_id)
-        photo_result = self.flickr.photos_getInfo(photo_id = photo_id)
+        self.log(2, "Fetching Photo ID %s" % photo_flickr_id)
+        photo_result = self.flickr.photos_getInfo(photo_id = photo_flickr_id)
         return self._fetch_photo(photo_result)
 
 
