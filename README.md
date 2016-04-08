@@ -1,3 +1,5 @@
 # django-archivr
 
-More to come...
+Abandoned.
+
+See https://github.com/philgyford/django-ditto instead.
